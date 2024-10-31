@@ -101,7 +101,7 @@
         /* Window Sizing */
         #editorWindow {
             width: 300px;
-            height: 450px;
+            height: 500px;
             top: 50px;
             left: 50px;
         }
@@ -132,6 +132,11 @@
         <!-- Color Picker for Node Color -->
         <label for="colorPicker">Node Color:</label>
         <input type="color" id="colorPicker" onchange="updateNodeColor()">
+        
+        <!-- Link File Button -->
+        <label for="linkToFile">Link to File:</label>
+        <select id="linkToFile"></select>
+        <button onclick="linkFile()">Link File</button>
     </div>
 
     <!-- Floating Files Window -->
@@ -160,6 +165,7 @@
                 document.getElementById("noteTitle").value = fileName;
                 document.getElementById("colorPicker").value = files[fileName].color;
                 updateFileList();
+                updateLinkToFileDropdown();
                 renderGraph();
             } else {
                 alert("File name already exists or invalid.");
@@ -198,6 +204,7 @@
                 delete files[currentFile];
                 currentFile = newTitle;
                 updateFileList();
+                updateLinkToFileDropdown();
                 renderGraph();
             } else {
                 document.getElementById("noteTitle").value = currentFile;
@@ -208,6 +215,28 @@
             if (currentFile) {
                 const newColor = document.getElementById("colorPicker").value;
                 files[currentFile].color = newColor;
+                renderGraph();
+            }
+        }
+
+        function updateLinkToFileDropdown() {
+            const dropdown = document.getElementById("linkToFile");
+            dropdown.innerHTML = "";
+            for (const fileName in files) {
+                if (fileName !== currentFile) {  // Exclude current file from dropdown
+                    const option = document.createElement("option");
+                    option.value = fileName;
+                    option.textContent = fileName;
+                    dropdown.appendChild(option);
+                }
+            }
+        }
+
+        function linkFile() {
+            const selectedFile = document.getElementById("linkToFile").value;
+            if (currentFile && selectedFile && !files[currentFile].links.includes(selectedFile)) {
+                files[currentFile].links.push(selectedFile);
+                files[selectedFile].links.push(currentFile); // Ensure bidirectional link
                 renderGraph();
             }
         }
@@ -230,6 +259,7 @@
                     files = JSON.parse(e.target.result);
                     currentFile = null;
                     updateFileList();
+                    updateLinkToFileDropdown();
                     renderGraph();
                 };
                 reader.readAsText(file);
@@ -270,7 +300,7 @@
             const nodes = Object.keys(files).map((file, index) => ({
                 id: index,
                 label: file,
-                color: files[file].color
+                color: files[file].color || "#f5c84c",
             }));
 
             const edges = [];
@@ -294,11 +324,7 @@
             const graphContainer = document.getElementById("graphBackground");
             const data = generateGraphData();
             const options = {
-                nodes: {
-                    shape: "dot",
-                    size: 20,
-                    font: { color: "#ffffff" }
-                },
+                nodes: { shape: "dot", size: 20, font: { color: "#ffffff" } },
                 edges: { color: "#888" },
                 physics: { enabled: true },
                 interaction: { dragView: true, zoomView: true },
@@ -316,6 +342,7 @@
 
         // Initialize
         updateFileList();
+        updateLinkToFileDropdown();
         renderGraph();
     </script>
 </body>

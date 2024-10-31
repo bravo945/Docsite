@@ -75,8 +75,8 @@
             font-size: 1em;
             line-height: 1.6;
             border-radius: 5px;
-            width: calc(100% - 20px);
-            height: calc(100% - 20px);
+            width: calc(100% - 10px);
+            height: calc(100% - 80px);
             box-sizing: border-box;
         }
 
@@ -127,6 +127,22 @@
             cursor: se-resize;
             border-bottom-right-radius: 5px;
         }
+
+        /* Button Styling */
+        .button {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 5px;
+            border: none;
+            color: white;
+            background-color: #555;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #666;
+        }
+
     </style>
     <!-- vis.js for Graph -->
     <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/dist/vis-network.min.js"></script>
@@ -148,10 +164,12 @@
         <label for="colorPicker">Node Color:</label>
         <input type="color" id="colorPicker" onchange="updateNodeColor()">
         
+        <button class="button" onclick="updateNodeColor()">Change Color</button>
+        
         <!-- Link File Button -->
         <label for="linkToFile">Link to File:</label>
         <select id="linkToFile"></select>
-        <button onclick="linkFile()">Link File</button>
+        <button class="button" onclick="linkFile()">Link File</button>
 
         <!-- Resizer -->
         <div class="resizer" onmousedown="startResize(event, 'editorWindow')"></div>
@@ -163,13 +181,13 @@
             Files
         </div>
         <ul id="fileList"></ul>
-        <button onclick="createFile()">Create New File</button>
-        <button onclick="exportFiles()">Export Files</button>
+        <button class="button" onclick="createFile()">Create New File</button>
+        <button class="button" onclick="exportFiles()">Export Files</button>
         <input type="file" id="fileInput" style="display:none" onchange="importFiles(event)">
-        <button onclick="document.getElementById('fileInput').click()">Import Files</button>
+        <button class="button" onclick="document.getElementById('fileInput').click()">Import Files</button>
 
         <!-- Resizer -->
-        <div class="resizer" onmousedown="startResize(event, 'filesWindow')"></div>
+        <div class="resizer" onmousedown="startResize(event, 'filesWindow', true)"></div>
     </div>
 
     <script>
@@ -263,14 +281,13 @@
             const selectedFile = document.getElementById("linkToFile").value;
             if (currentFile && selectedFile && !files[currentFile].links.includes(selectedFile)) {
                 files[currentFile].links.push(selectedFile);
-                files[selectedFile].links.push(currentFile); // Ensure bidirectional link
                 renderGraph();
             }
         }
 
         function exportFiles() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(files));
-            const downloadAnchorNode = document.createElement('a');
+            const downloadAnchorNode = document.createElement("a");
             downloadAnchorNode.setAttribute("href", dataStr);
             downloadAnchorNode.setAttribute("download", "files.json");
             document.body.appendChild(downloadAnchorNode);
@@ -321,7 +338,7 @@
         }
 
         // Resizable Window Logic
-        function startResize(e, windowId) {
+        function startResize(e, windowId, isFilesWindow = false) {
             isResizing = true;
             currentWindow = document.getElementById(windowId);
             const initialWidth = currentWindow.offsetWidth;
@@ -331,8 +348,10 @@
 
             function resizeWindow(e) {
                 if (isResizing) {
-                    const newWidth = Math.max(200, initialWidth + (e.clientX - initialMouseX)); // Minimum width
-                    const newHeight = Math.max(150, initialHeight + (e.clientY - initialMouseY)); // Minimum height
+                    const newWidth = isFilesWindow 
+                        ? Math.max(200, initialWidth - (e.clientX - initialMouseX)) // Flipped direction for files window
+                        : Math.max(200, initialWidth + (e.clientX - initialMouseX)); // Normal direction for editor window
+                    const newHeight = Math.max(150, initialHeight + (e.clientY - initialMouseY)); // Normal direction
                     currentWindow.style.width = `${newWidth}px`;
                     currentWindow.style.height = `${newHeight}px`;
                 }

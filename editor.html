@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Background with Draggable Windows</title>
+    <style>
+        /* General Styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2b2b2b;
+            color: #dcdcdc;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Graph Background */
+        #graphBackground {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background-color: #1e1e1e;
+        }
+
+        /* Draggable Window for Notes and Files */
+        .window {
+            background-color: #333;
+            padding: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+            position: absolute;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Draggable Header */
+        .draggable {
+            cursor: move;
+            background-color: #444;
+            color: #fff;
+            padding: 5px;
+            font-size: 1em;
+            border-radius: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Editor Title and Textarea */
+        #noteTitle {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            padding: 5px;
+            width: calc(100% - 10px);
+            border-radius: 5px;
+            background-color: #555;
+            color: #fff;
+            border: none;
+        }
+
+        #editor {
+            flex-grow: 1;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            border: none;
+            resize: none;
+            padding: 10px;
+            font-size: 1em;
+            line-height: 1.6;
+            border-radius: 5px;
+            width: calc(100% - 20px);
+            height: calc(100% - 20px);
+            box-sizing: border-box;
+        }
+
+        /* File List Styling */
+        #fileList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            color: #fff;
+            overflow-y: auto;
+            max-height: 300px;
+        }
+
+        #fileList li {
+            padding: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #fileList li:hover {
+            background-color: #555;
+        }
+
+        /* Window Sizing */
+        #editorWindow {
+            width: 300px;
+            height: 450px;
+            top: 50px;
+            left: 50px;
+        }
+
+        #filesWindow {
+            width: 200px;
+            height: 300px;
+            top: 50px;
+            right: 50px;
+        }
+    </style>
+    <!-- vis.js for Graph -->
+    <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/dist/vis-network.min.js"></script>
+</head>
+<body>
+
+    <!-- Graph Background -->
+    <div id="graphBackground"></div>
+
+    <!-- Floating Editor Window -->
+    <div class="window" id="editorWindow">
+        <div class="draggable" onmousedown="startDrag(event, 'editorWindow')">
+            Note Editor
+        </div>
+        <input type="text" id="noteTitle" placeholder="Untitled Note" onblur="renameFile()" />
+        <textarea id="editor" placeholder="Start writing here..." onfocus="saveCurrentFile()"></textarea>
+        
+        <!-- Color Picker for Node Color -->
+        <label for="colorPicker">Node Color:</label>
+        <input type="color" id="colorPicker" onchange="updateNodeColor()">
+    </div>
+
+    <!-- Floating Files Window -->
+    <div class="window" id="filesWindow">
+        <div class="draggable" onmousedown="startDrag(event, 'filesWindow')">
+            Files
+        </div>
+        <ul id="fileList"></ul>
+        <button onclick="createFile()">Create New File</button>
+        <button onclick="exportFiles()">Export Files</button>
+        <input type="file" id="fileInput" style="display:none" onchange="importFiles(event)">
+        <button onclick="document.getElementById('fileInput').click()">Import Files</button>
+    </div>
+
+    <script>
+        let files = {};
+        let currentFile = null;
+        let network;
+
+        function createFile() {
+            const fileName = prompt("Enter file name:");
+            if (fileName && !files[fileName]) {
+                files[fileName] = { content: "", links: [], color: "#f5c84c" };
+                currentFile = fileName;
+                document.getElementById('editor').value = "";
+                document.getElementById("noteTitle").value = fileName;
+                document.getElementById("colorPicker").value = files[fileName].color;
+                updateFileList();
+                renderGraph();
+            } else {
+                alert("File name already exists or invalid.");
+            }
+        }
+
+        function updateFileList() {
+            const fileList = document.getElementById("fileList");
+            fileList.innerHTML = "";
+            for (const fileName in files) {
+                const li = document.createElement("li");
+                li.textContent = fileName;
+                li.onclick = () => loadFile(fileName);
+                fileList.appendChild(li);
+            }
+        }
+
+        function loadFile(fileName) {
+            saveCurrentFile();
+            currentFile = fileName;
+            document.getElementById("editor").value = files[fileName].content;
+            document.getElementById("noteTitle").value = fileName;
+            document.getElementById("colorPicker").value = files[fileName].color;
+        }
+
+        function saveCurrentFile() {
+            if (currentFile) {
+                files[currentFile].content = document.getElementById("editor").value;
+            }
+        }
+
+        function renameFile() {
+            const newTitle = document.getElementById("noteTitle").value;
+            if (newTitle && newTitle !== currentFile && !files[newTitle]) {
+                files[newTitle] = files[currentFile];
+                delete files[currentFile];
+                currentFile = newTitle;
+                updateFileList();
+                renderGraph();
+            } else {
+                document.getElementById("noteTitle").value = currentFile;
+            }
+        }
+
+        function updateNodeColor() {
+            if (currentFile) {
+                const newColor = document.getElementById("colorPicker").value;
+                files[currentFile].color = newColor;
+                renderGraph();
+            }
+        }
+
+        function exportFiles() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(files));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "files.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importFiles(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    files = JSON.parse(e.target.result);
+                    currentFile = null;
+                    updateFileList();
+                    renderGraph();
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Draggable Window Logic
+        let isDragging = false;
+        let offset = { x: 0, y: 0 };
+        let currentWindow = null;
+
+        function startDrag(e, windowId) {
+            isDragging = true;
+            currentWindow = document.getElementById(windowId);
+            offset.x = e.clientX - currentWindow.offsetLeft;
+            offset.y = e.clientY - currentWindow.offsetTop;
+            document.addEventListener('mousemove', dragWindow);
+            document.addEventListener('mouseup', stopDrag);
+            e.preventDefault();
+        }
+
+        function dragWindow(e) {
+            if (isDragging) {
+                currentWindow.style.left = e.clientX - offset.x + 'px';
+                currentWindow.style.top = e.clientY - offset.y + 'px';
+            }
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            currentWindow = null;
+            document.removeEventListener('mousemove', dragWindow);
+            document.removeEventListener('mouseup', stopDrag);
+        }
+
+        // Graph Rendering
+        function generateGraphData() {
+            const nodes = Object.keys(files).map((file, index) => ({
+                id: index,
+                label: file,
+                color: files[file].color
+            }));
+
+            const edges = [];
+            const fileIndices = Object.keys(files).reduce((acc, file, index) => {
+                acc[file] = index;
+                return acc;
+            }, {});
+
+            for (const [file, data] of Object.entries(files)) {
+                (data.links || []).forEach(link => {
+                    if (fileIndices[link] !== undefined) {
+                        edges.push({ from: fileIndices[file], to: fileIndices[link] });
+                    }
+                });
+            }
+
+            return { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+        }
+
+        function renderGraph() {
+            const graphContainer = document.getElementById("graphBackground");
+            const data = generateGraphData();
+            const options = {
+                nodes: {
+                    shape: "dot",
+                    size: 20,
+                    font: { color: "#ffffff" }
+                },
+                edges: { color: "#888" },
+                physics: { enabled: true },
+                interaction: { dragView: true, zoomView: true },
+            };
+
+            network = new vis.Network(graphContainer, data, options);
+
+            network.on('select', function (params) {
+                if (params.nodes.length) {
+                    const fileName = Object.keys(files)[params.nodes[0]];
+                    loadFile(fileName);
+                }
+            });
+        }
+
+        // Initialize
+        updateFileList();
+        renderGraph();
+    </script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Graph Background with Draggable Windows</title>
+    <title>Graph Background with Draggable and Resizable Windows</title>
     <style>
         /* General Styling */
         body {
@@ -26,7 +26,7 @@
             background-color: #1e1e1e;
         }
 
-        /* Draggable Window for Notes and Files */
+        /* Draggable and Resizable Window for Notes and Files */
         .window {
             background-color: #333;
             padding: 10px;
@@ -36,6 +36,8 @@
             z-index: 100;
             display: flex;
             flex-direction: column;
+            resize: both; /* Allows for resizing */
+            overflow: hidden; /* Prevents content overflow */
         }
 
         /* Draggable Header */
@@ -68,7 +70,7 @@
             background-color: #1e1e1e;
             color: #ffffff;
             border: none;
-            resize: none;
+            resize: none; /* Prevent resizing the textarea */
             padding: 10px;
             font-size: 1em;
             line-height: 1.6;
@@ -104,6 +106,7 @@
             height: 500px;
             top: 50px;
             left: 50px;
+            display: none; /* Initially hidden */
         }
 
         #filesWindow {
@@ -111,6 +114,18 @@
             height: 300px;
             top: 50px;
             right: 50px;
+        }
+
+        /* Resizer for the Window's Bottom Right Corner */
+        .resizer {
+            width: 15px;
+            height: 15px;
+            background: #666;
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            cursor: se-resize;
+            border-bottom-right-radius: 5px;
         }
     </style>
     <!-- vis.js for Graph -->
@@ -137,6 +152,9 @@
         <label for="linkToFile">Link to File:</label>
         <select id="linkToFile"></select>
         <button onclick="linkFile()">Link File</button>
+
+        <!-- Resizer -->
+        <div class="resizer" onmousedown="startResize(event, 'editorWindow')"></div>
     </div>
 
     <!-- Floating Files Window -->
@@ -149,6 +167,9 @@
         <button onclick="exportFiles()">Export Files</button>
         <input type="file" id="fileInput" style="display:none" onchange="importFiles(event)">
         <button onclick="document.getElementById('fileInput').click()">Import Files</button>
+
+        <!-- Resizer -->
+        <div class="resizer" onmousedown="startResize(event, 'filesWindow')"></div>
     </div>
 
     <script>
@@ -167,6 +188,7 @@
                 updateFileList();
                 updateLinkToFileDropdown();
                 renderGraph();
+                showEditorWindow();
             } else {
                 alert("File name already exists or invalid.");
             }
@@ -189,6 +211,7 @@
             document.getElementById("editor").value = files[fileName].content;
             document.getElementById("noteTitle").value = fileName;
             document.getElementById("colorPicker").value = files[fileName].color;
+            showEditorWindow();
         }
 
         function saveCurrentFile() {
@@ -209,6 +232,10 @@
             } else {
                 document.getElementById("noteTitle").value = currentFile;
             }
+        }
+
+        function showEditorWindow() {
+            document.getElementById("editorWindow").style.display = "block";
         }
 
         function updateNodeColor() {
@@ -253,21 +280,19 @@
 
         function importFiles(event) {
             const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    files = JSON.parse(e.target.result);
-                    currentFile = null;
-                    updateFileList();
-                    updateLinkToFileDropdown();
-                    renderGraph();
-                };
-                reader.readAsText(file);
-            }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const importedFiles = JSON.parse(event.target.result);
+                Object.assign(files, importedFiles);
+                updateFileList();
+                renderGraph();
+            };
+            reader.readAsText(file);
         }
 
         // Draggable Window Logic
         let isDragging = false;
+        let isResizing = false;
         let offset = { x: 0, y: 0 };
         let currentWindow = null;
 
@@ -293,6 +318,34 @@
             currentWindow = null;
             document.removeEventListener('mousemove', dragWindow);
             document.removeEventListener('mouseup', stopDrag);
+        }
+
+        // Resizable Window Logic
+        function startResize(e, windowId) {
+            isResizing = true;
+            currentWindow = document.getElementById(windowId);
+            const initialWidth = currentWindow.offsetWidth;
+            const initialHeight = currentWindow.offsetHeight;
+            const initialMouseX = e.clientX;
+            const initialMouseY = e.clientY;
+
+            function resizeWindow(e) {
+                if (isResizing) {
+                    const newWidth = Math.max(200, initialWidth + (e.clientX - initialMouseX)); // Minimum width
+                    const newHeight = Math.max(150, initialHeight + (e.clientY - initialMouseY)); // Minimum height
+                    currentWindow.style.width = `${newWidth}px`;
+                    currentWindow.style.height = `${newHeight}px`;
+                }
+            }
+
+            function stopResize() {
+                isResizing = false;
+                document.removeEventListener('mousemove', resizeWindow);
+                document.removeEventListener('mouseup', stopResize);
+            }
+
+            document.addEventListener('mousemove', resizeWindow);
+            document.addEventListener('mouseup', stopResize);
         }
 
         // Graph Rendering

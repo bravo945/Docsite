@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Docsite - Editor</title>
+    <title>Graph Background with Draggable Windows</title>
     <style>
         /* General Styling */
         body {
@@ -302,8 +302,8 @@
         }
 
         function renameFile() {
-            const newName = document.getElementById("noteTitle").value;
-            if (newName && !files[newName]) {
+            const newName = document.getElementById("noteTitle").value.trim();
+            if (newName && newName !== currentFile && !files[newName]) {
                 files[newName] = { ...files[currentFile] };
                 delete files[currentFile];
                 currentFile = newName;

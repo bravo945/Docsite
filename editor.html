@@ -195,6 +195,7 @@
             <label for="linkToFile">Link to File:</label>
             <select id="linkToFile"></select>
             <button class="button" onclick="linkFile()">Link File</button>
+            <button class="button" onclick="unlinkFile()">Unlink File</button> <!-- New unlink button -->
         </div>
 
         <!-- Resizer -->
@@ -225,6 +226,7 @@
     <script>
         let files = {};
         let currentFile = null;
+        let network; // Define network variable here
         let dragOffset = { x: 0, y: 0 };
 
         function createFile() {
@@ -303,7 +305,7 @@
 
         function renameFile() {
             const newName = document.getElementById("noteTitle").value.trim();
-            if (newName && newName !== currentFile && !files[newName]) {
+            if (newName && newName !== currentFile) {
                 files[newName] = { ...files[currentFile] };
                 delete files[currentFile];
                 currentFile = newName;
@@ -312,26 +314,20 @@
             }
         }
 
-        function exportFiles() {
-            saveCurrentFile();
-            const data = JSON.stringify(files);
-            const blob = new Blob([data], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "files.json";
-            a.click();
+        function linkFile() {
+            const targetFile = document.getElementById("linkToFile").value;
+            if (currentFile && targetFile && !files[currentFile].links.includes(targetFile)) {
+                files[currentFile].links.push(targetFile);
+                renderGraph();
+            }
         }
 
-        function importFiles(event) {
-            const file = event.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                files = JSON.parse(e.target.result);
-                updateFileList();
+        function unlinkFile() {
+            const targetFile = document.getElementById("linkToFile").value;
+            if (currentFile && targetFile) {
+                files[currentFile].links = files[currentFile].links.filter(link => link !== targetFile);
                 renderGraph();
-            };
-            reader.readAsText(file);
+            }
         }
 
         function updateNodeColor() {
@@ -341,30 +337,6 @@
             }
         }
 
-        function linkFile() {
-            if (currentFile) {
-                const targetFile = document.getElementById("linkToFile").value;
-                if (targetFile && !files[currentFile].links.includes(targetFile)) {
-                    files[currentFile].links.push(targetFile);
-                    renderGraph();
-                }
-            }
-        }
-
-        function openEditorWindow() {
-            document.getElementById("editorWindow").style.display = "flex";
-        }
-
-        function closeWindow(id) {
-            document.getElementById(id).style.display = "none";
-        }
-
-        function minimizeWindow(id) {
-            const window = document.getElementById(id);
-            window.classList.toggle("minimized");
-        }
-
-        let network;
         function renderGraph() {
             const nodes = Object.keys(files).map((fileName) => ({
                 id: fileName,
@@ -401,39 +373,83 @@
             } else {
                 network = new vis.Network(container, data, options);
             }
+
+            network.on("click", function (params) {
+                if (params.nodes.length > 0) {
+                    const fileName = params.nodes[0];
+                    loadFile(fileName); 
+                    openEditorWindow();
+                }
+            });
         }
 
-        function startDrag(event, id) {
-            const element = document.getElementById(id);
-            dragOffset.x = event.clientX - element.offsetLeft;
-            dragOffset.y = event.clientY - element.offsetTop;
-            document.onmousemove = (e) => {
+        function openEditorWindow() {
+            document.getElementById("editorWindow").style.display = "flex";
+        }
+
+        function closeWindow(windowId) {
+            document.getElementById(windowId).style.display = "none";
+        }
+
+        function minimizeWindow(windowId) {
+            const windowElement = document.getElementById(windowId);
+            windowElement.classList.toggle("minimized");
+        }
+
+        function exportFiles() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(files));
+            const downloadAnchor = document.createElement("a");
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "files.json");
+            downloadAnchor.click();
+        }
+
+        function importFiles(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    files = JSON.parse(e.target.result);
+                    updateFileList();
+                    renderGraph();
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function startDrag(event, elementId) {
+            const element = document.getElementById(elementId);
+            dragOffset.x = event.clientX - element.getBoundingClientRect().left;
+            dragOffset.y = event.clientY - element.getBoundingClientRect().top;
+
+            function drag(e) {
                 element.style.left = `${e.clientX - dragOffset.x}px`;
                 element.style.top = `${e.clientY - dragOffset.y}px`;
-            };
-            document.onmouseup = () => {
-                document.onmousemove = null;
-                document.onmouseup = null;
-            };
+            }
+
+            document.addEventListener("mousemove", drag);
+            document.addEventListener("mouseup", () => {
+                document.removeEventListener("mousemove", drag);
+            }, { once: true });
         }
 
-        function startResize(event, id) {
-            const element = document.getElementById(id);
-            const initialWidth = element.offsetWidth;
-            const initialHeight = element.offsetHeight;
-            const initialX = event.clientX;
-            const initialY = event.clientY;
-            document.onmousemove = (e) => {
-                element.style.width = `${initialWidth + e.clientX - initialX}px`;
-                element.style.height = `${initialHeight + e.clientY - initialY}px`;
-            };
-            document.onmouseup = () => {
-                document.onmousemove = null;
-                document.onmouseup = null;
-            };
-        }
+        function startResize(event, elementId) {
+            const element = document.getElementById(elementId);
+            const startWidth = element.clientWidth;
+            const startHeight = element.clientHeight;
+            const startX = event.clientX;
+            const startY = event.clientY;
 
-        window.addEventListener("load", updateFileList);
+            function resize(e) {
+                element.style.width = `${startWidth + e.clientX - startX}px`;
+                element.style.height = `${startHeight + e.clientY - startY}px`;
+            }
+
+            document.addEventListener("mousemove", resize);
+            document.addEventListener("mouseup", () => {
+                document.removeEventListener("mousemove", resize);
+            }, { once: true });
+        }
     </script>
 </body>
 </html>

@@ -25,15 +25,9 @@
           color: #dcdcdc;
           margin: 0;
           padding: 20px;
+          overflow-x: hidden; /* Prevents horizontal scroll caused by the image */
       }
-       #largeImage {
-          position: absolute; /* Position the image below the content */
-          bottom: 0; /* Align it to the bottom */
-          left: 0; /* Align it to the left */
-          width: 100%; /* Full width */
-          height: auto; /* Maintain aspect ratio */
-          z-index: -1; /* Send the image behind other elements */
-      }
+
       h1 {
           color: #e8e8e8;
           font-size: 2em;
@@ -49,6 +43,8 @@
           padding: 20px;
           background-color: #333;
           border-radius: 10px;
+          position: relative;
+          z-index: 1; /* Ensures container is above the image */
       }
 
       .index-link {
@@ -60,6 +56,15 @@
           transition: background-color 0.3s;
       }
 
+      .index-link-err {
+          font-size: 1.2em;
+          color: #f55a42;
+          text-decoration: none;
+          padding: 10px;
+          border-radius: 5px;
+          transition: background-color 0.3s;
+      }
+      
       .index-link:hover {
           background-color: #444;
       }
@@ -68,14 +73,29 @@
           content: "• ";
           color: #f5d84b;
       }
+
+      /* Background image styling */
+      #largeImage {
+          position: absolute;
+          top: 0;
+          right: 0;
+          height: 100vh; /* Full viewport height */
+          width: auto; /* Maintain aspect ratio */
+          object-fit: contain; /* Scale without stretching */
+          z-index: -1; /* Send behind other elements */
+      }
     </style>
   </head>
   <body>
-    <h1>Index</h1>
+    <h1 align="center">DOCSITE</h1>
 
     <div class="index-container">
-      <a href="sonnyverse.html" class="index-link">Sonnyverse</a>
       <a href="editor.html" class="index-link">Editor</a>
+      <a href ="viewer.html" class="index-link-err">Viewer</a>
+      <a href="storage.html" class="index-link-err">Local Storage</a>
     </div>
+
+    <!-- Large background image -->
+    <img src="assets/dotsimg.png" alt="Background Graphic" id="largeImage" />
   </body>
 </html>

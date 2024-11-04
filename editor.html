@@ -230,11 +230,11 @@
         let dragOffset = { x: 0, y: 0 };
 
         function createFile() {
+            saveCurrentFile(); // Save current file before creating a new one
             const fileName = prompt("Enter file name:");
             if (fileName && !files[fileName]) {
                 files[fileName] = { content: "", links: [], color: "#f5c84c" };
-                currentFile = fileName;
-                document.getElementById('editor').value = ""; 
+                loadFile(fileName); // Load the new file into the editor
                 updateFileList();
                 renderGraph();
                 openEditorWindow();
@@ -299,7 +299,7 @@
 
         function saveCurrentFile() {
             if (currentFile) {
-                files[currentFile].content = document.getElementById("editor").value;
+                files[currentFile].content = document.getElementById("editor").value; 
             }
         }
 
@@ -311,6 +311,7 @@
                 currentFile = newName;
                 updateFileList();
                 renderGraph();
+                loadFile(newName); // Load the new file name in the editor
             }
         }
 

@@ -1,456 +1,615 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Graph Background with Draggable Windows</title>
     <style>
-        /* General Styling */
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #2b2b2b;
-            color: #dcdcdc;
-            margin: 0;
-            height: 100vh;
-            overflow: hidden;
-        }
+                    /* General Styling */
+                    body {
+                        font-family: Arial, sans-serif;
+                        background-color: #2b2b2b;
+                        color: #dcdcdc;
+                        margin: 0;
+                        height: 100vh;
+                        overflow: hidden;
+                    }
 
-        /* Graph Background */
-        #graphBackground {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-            background-color: #1e1e1e;
-        }
+                    /* Graph Background */
+                    #graphBackground {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        z-index: 0;
+                        background-color: #1e1e1e;
+                    }
 
-        /* Draggable Window */
-        .window {
-            background-color: #333;
-            padding: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            border-radius: 5px;
-            position: absolute;
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-        }
+                    /* Draggable Window */
+                    .window {
+                        background-color: #333;
+                        padding: 10px;
+                        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+                        border-radius: 5px;
+                        position: absolute;
+                        z-index: 100;
+                        display: flex;
+                        flex-direction: column;
+                    }
 
-        .draggable {
-            cursor: move;
-            background-color: #444;
-            color: #fff;
-            padding: 5px;
-            font-size: 1em;
-            border-radius: 3px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+                    .draggable {
+                        cursor: move;
+                        background-color: #444;
+                        color: #fff;
+                        padding: 5px;
+                        font-size: 1em;
+                        border-radius: 3px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
 
-        /* Editor Textarea */
-        #editor {
-            flex-grow: 1;
-            background-color: #1e1e1e;
-            color: #ffffff;
-            border: none;
-            resize: none;
-            padding: 10px;
-            font-size: 1em;
-            line-height: 1.6;
-            border-radius: 5px;
-            width: 100%;
-            box-sizing: border-box;
-        }
+                    /* Editor Textarea */
+                    #editor {
+                        flex-grow: 1;
+                        background-color: #1e1e1e;
+                        color: #ffffff;
+                        border: none;
+                        resize: none;
+                        padding: 10px;
+                        font-size: 1em;
+                        line-height: 1.6;
+                        border-radius: 5px;
+                        width: 100%;
+                        box-sizing: border-box;
+                    }
 
-        /* File List Styling */
-        #fileList {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            color: #fff;
-            overflow-y: auto;
-            max-height: 300px;
-        }
+                    /* File List Styling */
+                    #fileList {
+                        list-style: none;
+                        padding: 0;
+                        margin: 0;
+                        color: #fff;
+                        overflow-y: auto;
+                        max-height: 300px;
+                    }
 
-        #fileList li {
-            padding: 5px;
-            cursor: pointer;
-            transition: background 0.3s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+                    #fileList li {
+                        padding: 5px;
+                        cursor: pointer;
+                        transition: background 0.3s;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
 
-        #fileList li:hover {
-            background-color: #555;
-        }
+                    #fileList li:hover {
+                        background-color: #555;
+                    }
 
-        /* Window Sizing */
-        #editorWindow {
-            width: 300px;
-            height: 500px;
-            top: 50px;
-            left: 50px;
-            display: none;
-            flex-direction: column;
-        }
+                    /* Window Sizing */
+                    #editorWindow {
+                        width: 300px;
+                        height: 500px;
+                        top: 50px;
+                        left: 50px;
+                        display: none;
+                        flex-direction: column;
+                    }
 
-        #filesWindow {
-            width: 200px;
-            height: 300px;
-            top: 50px;
-            right: 50px;
-        }
+                    #filesWindow {
+                        width: 200px;
+                        height: 300px;
+                        top: 50px;
+                        right: 50px;
+                    }
 
-        /* Title Input */
-        #noteTitle {
-            font-size: 1.2em;
-            margin-bottom: 10px;
-            padding: 5px;
-            width: calc(100% - 10px);
-            border-radius: 5px;
-            background-color: #555;
-            color: #fff;
-            border: none;
-        }
+                    /* Title Input */
+                    #noteTitle {
+                        font-size: 1.2em;
+                        margin-bottom: 10px;
+                        padding: 5px;
+                        width: calc(100% - 10px);
+                        border-radius: 5px;
+                        background-color: #555;
+                        color: #fff;
+                        border: none;
+                    }
 
-        /* Button Container Styling */
-        #editorButtons {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            padding-top: 10px;
-            margin-top: auto;
-        }
+                    /* Button Container Styling */
+                    #editorButtons {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 5px;
+                        padding-top: 10px;
+                        margin-top: auto;
+                    }
 
-        .button {
-            padding: 8px;
-            border-radius: 5px;
-            border: none;
-            color: white;
-            background-color: #555;
-            cursor: pointer;
-            font-size: 0.9em;
-            text-align: center;
-        }
+                    .button {
+                        padding: 8px;
+                        border-radius: 5px;
+                        border: none;
+                        color: white;
+                        background-color: #555;
+                        cursor: pointer;
+                        font-size: 0.9em;
+                        text-align: center;
+                    }
 
-        .button:hover {
-            background-color: #666;
-        }
+                    .button:hover {
+                        background-color: #666;
+                    }
 
-        /* Resizer Styling */
-        .resizer {
-            width: 12px;
-            height: 12px;
-            background-color: #666;
-            border-radius: 50%;
-            position: absolute;
-            bottom: 5px;
-            right: 5px;
-            cursor: nwse-resize;
-        }
+                    /* Resizer Styling */
+                    .resizer {
+                        width: 12px;
+                        height: 12px;
+                        background-color: #666;
+                        border-radius: 50%;
+                        position: absolute;
+                        bottom: 5px;
+                        right: 5px;
+                        cursor: nwse-resize;
+                    }
 
-        /* Minimized State */
-        .minimized {
-            height: 30px;
-            overflow: hidden;
-        }
+                    /* Minimized State */
+                    .minimized {
+                        height: 30px;
+                        overflow: hidden;
+                    }
+                    .modal {
+              display: none;
+              position: fixed;
+              z-index: 1;
+              left: 0;
+              top: 0;
+              width: 100%;
+              height: 100%;
+              overflow: auto;
+              background-color: rgba(0, 0, 0, 0.4);
+            }
+
+            .modal-content {
+              background-color: #fefefe;
+              margin: 15% auto;
+              padding: 20px;
+              border: 1px solid #888;
+              width: 80%;
+            }
+
+            .close-button {
+              color: #aaa;
+              float: right;
+              font-size: 28px;
+              font-weight: bold;
+            }
+
+            .close-button:hover,
+            .close-button:focus {
+              color: black;
+              text-decoration: none;
+              cursor: pointer;
+            }
+            .json-display {
+        flex-grow: 1;
+        background-color: #1e1e1e;
+        color: #ffffff;
+        border: none;
+        resize: none;
+        padding: 10px;
+        font-size: 1em;
+        line-height: 1.6;
+        border-radius: 5px;
+        width: 100%;
+        box-sizing: border-box;
+        overflow-y: auto;
+      }
     </style>
     <!-- vis.js for Graph -->
     <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/dist/vis-network.min.js"></script>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Graph Background -->
     <div id="graphBackground"></div>
 
     <!-- Floating Editor Window -->
     <div class="window" id="editorWindow">
-        <div class="draggable" onmousedown="startDrag(event, 'editorWindow')">
-            Note Editor
-            <div>
-                <button onclick="minimizeWindow('editorWindow')">_</button>
-                <button onclick="closeWindow('editorWindow')">X</button>
-            </div>
+      <div class="draggable" onmousedown="startDrag(event, 'editorWindow')">
+        Note Editor
+        <div>
+          <button onclick="minimizeWindow('editorWindow')">_</button>
+          <button onclick="closeWindow('editorWindow')">X</button>
         </div>
-        <input
-            type="text"
-            id="noteTitle"
-            placeholder="Untitled Note"
-            onblur="renameFile()"
-        />
-        <textarea
-            id="editor"
-            placeholder="Start writing here..."
-            onfocus="saveCurrentFile()"
-        ></textarea>
+      </div>
+      <input
+        type="text"
+        id="noteTitle"
+        placeholder="Untitled Note"
+        onblur="renameFile()"
+      />
+      <textarea
+        id="editor"
+        placeholder="Start writing here..."
+        onfocus="saveCurrentFile()"
+      ></textarea>
 
-        <!-- Button Container for Bottom Controls -->
-        <div id="editorButtons">
-            <!-- Color Picker for Node Color -->
-            <label for="colorPicker">Node Color:</label>
-            <input type="color" id="colorPicker" onchange="updateNodeColor()" />
-            <label for="linkToFile">Link to File:</label>
-            <select id="linkToFile"></select>
-            <button class="button" onclick="linkFile()">Link File</button>
-            <button class="button" onclick="unlinkFile()">Unlink File</button> <!-- New unlink button -->
-        </div>
+      <!-- Button Container for Bottom Controls -->
+      <div id="editorButtons">
+        <!-- Color Picker for Node Color -->
+        <label for="colorPicker">Node Color:</label>
+        <input type="color" id="colorPicker" onchange="updateNodeColor()" />
+        <label for="linkToFile">Link to File:</label>
+        <select id="linkToFile"></select>
+        <button class="button" onclick="linkFile()">Link File</button>
+        <button class="button" onclick="unlinkFile()">Unlink File</button>
+        <!-- New unlink button -->
+      </div>
 
-        <!-- Resizer -->
-        <div
-            class="resizer"
-            onmousedown="startResize(event, 'editorWindow')"
-        ></div>
+      <!-- Resizer -->
+      <div
+        class="resizer"
+        onmousedown="startResize(event, 'editorWindow')"
+      ></div>
     </div>
 
     <!-- Floating Files Window -->
     <div class="window" id="filesWindow">
-        <div class="draggable" onmousedown="startDrag(event, 'filesWindow')">
-            Files
-            <div>
-                <button onclick="minimizeWindow('filesWindow')">_</button>
-            </div>
+      <div class="draggable" onmousedown="startDrag(event, 'filesWindow')">
+        Files
+        <div>
+          <button onclick="minimizeWindow('filesWindow')">_</button>
         </div>
-        <ul id="fileList"></ul>
-        <button onclick="createFile()">Create New File</button>
+      </div>
+      <ul id="fileList"></ul>
+      <button onclick="createFile()">Create New File</button>
 
-        <!-- Import/Export Controls -->
-        <div id="fileControls">
-            <button class="button" onclick="exportFiles()">Export Files</button>
-            <input type="file" id="importFile" onchange="importFiles(event)" />
-        </div>
+      <!-- Import/Export Controls -->
+      <div id="fileControls">
+        <button class="button" onclick="exportFiles()">Export Files</button>
+        <input type="file" id="importFile" onchange="importFiles(event)" />
+      </div>
     </div>
 
     <script>
-        let files = {};
-        let currentFile = null;
-        let network; // Define network variable here
-        let dragOffset = { x: 0, y: 0 };
+                              let files = {};
+                              let currentFile = null;
+                              let network; // Define network variable here
+                              let dragOffset = { x: 0, y: 0 };
 
-        function createFile() {
-            saveCurrentFile(); // Save current file before creating a new one
-            const fileName = prompt("Enter file name:");
-            if (fileName && !files[fileName]) {
-                files[fileName] = { content: "", links: [], color: "#f5c84c" };
-                loadFile(fileName); // Load the new file into the editor
-                updateFileList();
-                renderGraph();
-                openEditorWindow();
-            } else {
-                alert("File name already exists or invalid.");
-            }
-        }
+                              function createFile() {
+                                  saveCurrentFile(); // Save current file before creating a new one
+                                  const fileName = prompt("Enter file name:");
+                                  if (fileName && !files[fileName]) {
+                                      files[fileName] = { content: "", links: [], color: "#f5c84c" };
+                                      loadFile(fileName); // Load the new file into the editor
+                                      updateFileList();
+                                      renderGraph();
+                                      openEditorWindow();
+                                  } else {
+                                      alert("File name already exists or invalid.");
+                                  }
+                              }
 
-        function updateFileList() {
-            const fileList = document.getElementById("fileList");
-            fileList.innerHTML = ""; 
-            for (const fileName in files) {
-                const li = document.createElement("li");
-                li.textContent = fileName;
+                              function updateFileList() {
+                                  const fileList = document.getElementById("fileList");
+                                  fileList.innerHTML = "";
+                                  for (const fileName in files) {
+                                      const li = document.createElement("li");
+                                      li.textContent = fileName;
 
-                const deleteButton = document.createElement("button");
-                deleteButton.textContent = "Delete";
-                deleteButton.onclick = (e) => {
-                    e.stopPropagation(); 
-                    deleteFile(fileName);
-                };
+                                      const deleteButton = document.createElement("button");
+                                      deleteButton.textContent = "Delete";
+                                      deleteButton.onclick = (e) => {
+                                          e.stopPropagation();
+                                          deleteFile(fileName);
+                                      };
 
-                li.onclick = () => {
-                    loadFile(fileName);
-                    openEditorWindow();
-                };
+                                      li.onclick = () => {
+                                          loadFile(fileName);
+                                          openEditorWindow();
+                                      };
 
-                li.appendChild(deleteButton);
-                fileList.appendChild(li);
-            }
+                                      li.appendChild(deleteButton);
+                                      fileList.appendChild(li);
+                                  }
 
-            const linkToFile = document.getElementById("linkToFile");
-            linkToFile.innerHTML = ""; 
-            for (const fileName in files) {
-                const option = document.createElement("option");
-                option.value = fileName;
-                option.textContent = fileName;
-                linkToFile.appendChild(option);
-            }
-        }
+                                  const linkToFile = document.getElementById("linkToFile");
+                                  linkToFile.innerHTML = "";
+                                  for (const fileName in files) {
+                                      const option = document.createElement("option");
+                                      option.value = fileName;
+                                      option.textContent = fileName;
+                                      linkToFile.appendChild(option);
+                                  }
+                              }
 
-        function deleteFile(fileName) {
-            if (confirm(`Are you sure you want to delete "${fileName}"?`)) {
-                delete files[fileName];
-                if (currentFile === fileName) {
-                    currentFile = null;
-                    document.getElementById("editor").value = ""; 
-                    document.getElementById("noteTitle").value = ""; 
-                }
-                updateFileList();
-                renderGraph();
-            }
-        }
+                              function deleteFile(fileName) {
+                                  if (confirm(`Are you sure you want to delete "${fileName}"?`)) {
+                                      delete files[fileName];
+                                      if (currentFile === fileName) {
+                                          currentFile = null;
+                                          document.getElementById("editor").value = "";
+                                          document.getElementById("noteTitle").value = "";
+                                      }
+                                      updateFileList();
+                                      renderGraph();
+                                  }
+                              }
 
-        function loadFile(fileName) {
-            saveCurrentFile(); 
-            currentFile = fileName; 
-            document.getElementById("editor").value = files[fileName].content; 
-            document.getElementById("noteTitle").value = fileName;
-            document.getElementById("colorPicker").value = files[fileName].color || "#f5c84c";
-        }
+                              function loadFile(fileName) {
+                                  saveCurrentFile();
+                                  currentFile = fileName;
+                                  document.getElementById("editor").value = files[fileName].content;
+                                  document.getElementById("noteTitle").value = fileName;
+                                  document.getElementById("colorPicker").value = files[fileName].color || "#f5c84c";
+                              }
 
-        function saveCurrentFile() {
-            if (currentFile) {
-                files[currentFile].content = document.getElementById("editor").value; 
-            }
-        }
+                              function saveCurrentFile() {
+                                  if (currentFile) {
+                                      files[currentFile].content = document.getElementById("editor").value;
+                                  }
+                              }
 
-        function renameFile() {
-            const newName = document.getElementById("noteTitle").value.trim();
-            if (newName && newName !== currentFile) {
-                files[newName] = { ...files[currentFile] };
-                delete files[currentFile];
-                currentFile = newName;
-                updateFileList();
-                renderGraph();
-                loadFile(newName); // Load the new file name in the editor
-            }
-        }
+                              function renameFile() {
+                                  const newName = document.getElementById("noteTitle").value.trim();
+                                  if (newName && newName !== currentFile) {
+                                      files[newName] = { ...files[currentFile] };
+                                      delete files[currentFile];
+                                      currentFile = newName;
+                                      updateFileList();
+                                      renderGraph();
+                                      loadFile(newName); // Load the new file name in the editor
+                                  }
+                              }
 
-        function linkFile() {
-            const targetFile = document.getElementById("linkToFile").value;
-            if (currentFile && targetFile && !files[currentFile].links.includes(targetFile)) {
-                files[currentFile].links.push(targetFile);
-                renderGraph();
-            }
-        }
+                              function linkFile() {
+                                  const targetFile = document.getElementById("linkToFile").value;
+                                  if (currentFile && targetFile && !files[currentFile].links.includes(targetFile)) {
+                                      files[currentFile].links.push(targetFile);
+                                      renderGraph();
+                                  }
+                              }
 
-        function unlinkFile() {
-            const targetFile = document.getElementById("linkToFile").value;
-            if (currentFile && targetFile) {
-                files[currentFile].links = files[currentFile].links.filter(link => link !== targetFile);
-                renderGraph();
-            }
-        }
+                              function unlinkFile() {
+                                  const targetFile = document.getElementById("linkToFile").value;
+                                  if (currentFile && targetFile) {
+                                      files[currentFile].links = files[currentFile].links.filter(link => link !== targetFile);
+                                      renderGraph();
+                                  }
+                              }
 
-        function updateNodeColor() {
-            if (currentFile) {
-                files[currentFile].color = document.getElementById("colorPicker").value;
-                renderGraph();
-            }
-        }
+                              function updateNodeColor() {
+                                  if (currentFile) {
+                                      files[currentFile].color = document.getElementById("colorPicker").value;
+                                      renderGraph();
+                                  }
+                              }
 
-        function renderGraph() {
-            const nodes = Object.keys(files).map((fileName) => ({
-                id: fileName,
-                label: fileName,
-                color: { background: files[fileName].color || "#f5c84c" },
-            }));
-            const edges = [];
-            for (const [source, file] of Object.entries(files)) {
-                for (const target of file.links) {
-                    edges.push({ from: source, to: target });
-                }
-            }
+                              function renderGraph() {
+                                  const nodes = Object.keys(files).map((fileName) => ({
+                                      id: fileName,
+                                      label: fileName,
+                                      color: { background: files[fileName].color || "#f5c84c" },
+                                  }));
+                                  const edges = [];
+                                  for (const [source, file] of Object.entries(files)) {
+                                      for (const target of file.links) {
+                                          edges.push({ from: source, to: target });
+                                      }
+                                  }
 
-            const container = document.getElementById("graphBackground");
-            const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
-            const options = {
-                nodes: {
-                    shape: "dot",
-                    size: 10,
-                    font: { color: "#ffffff" },
-                    borderWidth: 2,
-                },
-                edges: {
-                    width: 2,
-                    color: "#777777",
-                },
-                physics: {
-                    enabled: true,
-                },
-            };
+                                  const container = document.getElementById("graphBackground");
+                                  const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+                                  const options = {
+                                      nodes: {
+                                          shape: "dot",
+                                          size: 10,
+                                          font: { color: "#ffffff" },
+                                          borderWidth: 2,
+                                      },
+                                      edges: {
+                                          width: 2,
+                                          color: "#777777",
+                                      },
+                                      physics: {
+                                          enabled: true,
+                                      },
+                                  };
 
-            if (network) {
-                network.setData(data);
-            } else {
-                network = new vis.Network(container, data, options);
-            }
+                                  if (network) {
+                                      network.setData(data);
+                                  } else {
+                                      network = new vis.Network(container, data, options);
+                                  }
 
-            network.on("click", function (params) {
-                if (params.nodes.length > 0) {
-                    const fileName = params.nodes[0];
-                    loadFile(fileName); 
-                    openEditorWindow();
-                }
-            });
-        }
+                                  network.on("click", function (params) {
+                                      if (params.nodes.length > 0) {
+                                          const fileName = params.nodes[0];
+                                          loadFile(fileName);
+                                          openEditorWindow();
+                                      }
+                                  });
+                              }
 
-        function openEditorWindow() {
-            document.getElementById("editorWindow").style.display = "flex";
-        }
+                              function openEditorWindow() {
+                                  document.getElementById("editorWindow").style.display = "flex";
+                              }
 
-        function closeWindow(windowId) {
-            document.getElementById(windowId).style.display = "none";
-        }
+                              function closeWindow(windowId) {
+                                  document.getElementById(windowId).style.display = "none";
+                              }
 
-        function minimizeWindow(windowId) {
-            const windowElement = document.getElementById(windowId);
-            windowElement.classList.toggle("minimized");
-        }
+                              function minimizeWindow(windowId) {
+                                  const windowElement = document.getElementById(windowId);
+                                  windowElement.classList.toggle("minimized");
+                              }
+      let exportWindow;
 
-        function exportFiles() {
+      function exportFiles() {
+        // Save current file before exporting
+        saveCurrentFile();
+
+        // Check if the export window already exists
+        if (!exportWindow) {
+          // Create the export window
+          exportWindow = document.createElement("div");
+          exportWindow.classList.add("window");
+          exportWindow.id = "exportWindow";
+          exportWindow.style.maxWidth = "800px";
+          exportWindow.style.maxHeight = "600px";
+
+          // Add the draggable header
+          const header = document.createElement("div");
+          header.classList.add("draggable");
+          header.onmousedown = (event) => startDrag(event, "exportWindow");
+          header.textContent = "Export Files";
+
+          // Add the close button
+          const closeButton = document.createElement("button");
+          closeButton.textContent = "X";
+          closeButton.onclick = () => closeWindow("exportWindow");
+          header.appendChild(closeButton);
+
+          // Add the JSON display
+          const jsonDisplay = document.createElement("textarea");
+          jsonDisplay.classList.add("json-display");
+          jsonDisplay.textContent = JSON.stringify(files, null, 2);
+          jsonDisplay.readOnly = true;
+
+          // Add the save button
+          const saveButton = document.createElement("button");
+          saveButton.classList.add("button");
+          saveButton.textContent = "Save As";
+          saveButton.onclick = () => {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(files));
             const downloadAnchor = document.createElement("a");
             downloadAnchor.setAttribute("href", dataStr);
             downloadAnchor.setAttribute("download", "files.json");
+            document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
+            document.body.removeChild(downloadAnchor);
+            closeWindow("exportWindow");
+          };
+
+          // Add the resizer
+          const resizer = document.createElement("div");
+          resizer.classList.add("resizer");
+          resizer.onmousedown = (event) => startResize(event, "exportWindow");
+
+          exportWindow.appendChild(header);
+          exportWindow.appendChild(jsonDisplay);
+          exportWindow.appendChild(saveButton);
+          exportWindow.appendChild(resizer);
+
+          document.body.appendChild(exportWindow);
         }
 
-        function importFiles(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    files = JSON.parse(e.target.result);
-                    updateFileList();
-                    renderGraph();
-                };
-                reader.readAsText(file);
-            }
+        // Open the export window
+        exportWindow.style.display = "flex";
+      }
+
+      function startDrag(event, elementId) {
+        const element = document.getElementById(elementId);
+        dragOffset.x = event.clientX - element.getBoundingClientRect().left;
+        dragOffset.y = event.clientY - element.getBoundingClientRect().top;
+
+        function drag(e) {
+          element.style.left = `${e.clientX - dragOffset.x}px`;
+          element.style.top = `${e.clientY - dragOffset.y}px`;
         }
 
-        function startDrag(event, elementId) {
-            const element = document.getElementById(elementId);
-            dragOffset.x = event.clientX - element.getBoundingClientRect().left;
-            dragOffset.y = event.clientY - element.getBoundingClientRect().top;
+        document.addEventListener("mousemove", drag);
+        document.addEventListener("mouseup", () => {
+          document.removeEventListener("mousemove", drag);
+        }, { once: true });
+      }
 
-            function drag(e) {
-                element.style.left = `${e.clientX - dragOffset.x}px`;
-                element.style.top = `${e.clientY - dragOffset.y}px`;
-            }
+      function startResize(event, elementId) {
+        const element = document.getElementById(elementId);
+        const startWidth = element.clientWidth;
+        const startHeight = element.clientHeight;
+        const startX = event.clientX;
+        const startY = event.clientY;
 
-            document.addEventListener("mousemove", drag);
-            document.addEventListener("mouseup", () => {
-                document.removeEventListener("mousemove", drag);
-            }, { once: true });
+        function resize(e) {
+          element.style.width = `${startWidth + e.clientX - startX}px`;
+          element.style.height = `${startHeight + e.clientY - startY}px`;
         }
 
-        function startResize(event, elementId) {
-            const element = document.getElementById(elementId);
-            const startWidth = element.clientWidth;
-            const startHeight = element.clientHeight;
-            const startX = event.clientX;
-            const startY = event.clientY;
+        document.addEventListener("mousemove", resize);
+        document.addEventListener("mouseup", () => {
+          document.removeEventListener("mousemove", resize);
+        }, { once: true });
+      }
 
-            function resize(e) {
+      function closeWindow(windowId) {
+        document.getElementById(windowId).style.display = "none";
+      }
+            function startResize(event, elementId) {
+              const element = document.getElementById(elementId);
+              const startWidth = element.clientWidth;
+              const startHeight = element.clientHeight;
+              const startX = event.clientX;
+              const startY = event.clientY;
+
+              function resize(e) {
                 element.style.width = `${startWidth + e.clientX - startX}px`;
                 element.style.height = `${startHeight + e.clientY - startY}px`;
+              }
+
+              document.addEventListener("mousemove", resize);
+              document.addEventListener("mouseup", () => {
+                document.removeEventListener("mousemove", resize);
+              }, { once: true });
             }
 
-            document.addEventListener("mousemove", resize);
-            document.addEventListener("mouseup", () => {
-                document.removeEventListener("mousemove", resize);
-            }, { once: true });
-        }
+                              function importFiles(event) {
+                                  const file = event.target.files[0];
+                                  if (file) {
+                                      const reader = new FileReader();
+                                      reader.onload = function (e) {
+                                          files = JSON.parse(e.target.result);
+                                          updateFileList();
+                                          renderGraph();
+                                      };
+                                      reader.readAsText(file);
+                                  }
+                              }
+
+                              function startDrag(event, elementId) {
+                                  const element = document.getElementById(elementId);
+                                  dragOffset.x = event.clientX - element.getBoundingClientRect().left;
+                                  dragOffset.y = event.clientY - element.getBoundingClientRect().top;
+
+                                  function drag(e) {
+                                      element.style.left = `${e.clientX - dragOffset.x}px`;
+                                      element.style.top = `${e.clientY - dragOffset.y}px`;
+                                  }
+
+                                  document.addEventListener("mousemove", drag);
+                                  document.addEventListener("mouseup", () => {
+                                      document.removeEventListener("mousemove", drag);
+                                  }, { once: true });
+                              }
+
+                              function startResize(event, elementId) {
+                                  const element = document.getElementById(elementId);
+                                  const startWidth = element.clientWidth;
+                                  const startHeight = element.clientHeight;
+                                  const startX = event.clientX;
+                                  const startY = event.clientY;
+
+                                  function resize(e) {
+                                      element.style.width = `${startWidth + e.clientX - startX}px`;
+                                      element.style.height = `${startHeight + e.clientY - startY}px`;
+                                  }
+
+                                  document.addEventListener("mousemove", resize);
+                                  document.addEventListener("mouseup", () => {
+                                      document.removeEventListener("mousemove", resize);
+                                  }, { once: true });
+                              }
     </script>
-</body>
+  </body>
 </html>

@@ -1,9 +1,9 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Graph Background with Draggable Windows</title>
+    <title>Docsite</title>
     <style>
       /* General Styling */
       body {
@@ -161,6 +161,7 @@
         padding: 20px;
         border: 1px solid #888;
         width: 80%;
+        max-width: 400px;
       }
       .close-button {
         color: #aaa;
@@ -215,6 +216,15 @@
         border: none;
       }
     </style>
+    <link rel="manifest" href="/manifest.json">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/service-worker.js');
+        });
+      }
+    </script>
+    <!-- manifest -->
     <!-- vis.js for Graph -->
     <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/dist/vis-network.min.js"></script>
   </head>
@@ -274,8 +284,8 @@
         onkeyup="searchFiles()"
       />
       <ul id="fileList"></ul>
-      <button onclick="createFile('text')">Create Text Node</button>
-      <button onclick="createFile('image')">Create Image Node</button>
+      <button onclick="openCreateNodeModal('text')">Create Text Node</button>
+      <button onclick="openCreateNodeModal('image')">Create Image Node</button>
       <!-- Import/Export Controls -->
       <div id="fileControls">
         <button class="button" onclick="exportFiles()">Export Files</button>
@@ -332,49 +342,75 @@
         onmousedown="startResize(event, 'imageEditorWindow')"
       ></div>
     </div>
+
+    <!-- Custom Modal for Node Creation -->
+    <div id="createNodeModal" class="modal">
+      <div class="modal-content">
+        <span class="close-button" onclick="closeCreateNodeModal()">&times;</span>
+        <h2 id="createNodeTitle">Create Node</h2>
+        <input type="text" id="nodeName" placeholder="Enter node name" />
+        <input type="text" id="nodeImageUrl" placeholder="Enter image URL (for image nodes)" style="display: none;" />
+        <button class="button" onclick="confirmCreateNode()">Create</button>
+      </div>
+    </div>
+
     <script>
       let files = {};
       let currentFile = null;
       let network;
       let dragOffset = { x: 0, y: 0 };
-      function createFile(nodeType) {
-        saveCurrentFile(); 
-        if (nodeType === "text") {
-          const fileName = prompt("Enter file name:");
-          if (fileName && !files[fileName]) {
-            files[fileName] = {
+      let nodeTypeToCreate = '';
+
+      function openCreateNodeModal(nodeType) {
+        document.getElementById('createNodeTitle').innerText = `Create ${nodeType.charAt(0).toUpperCase() + nodeType.slice(1)} Node`;
+        document.getElementById('nodeName').value = '';
+        document.getElementById('nodeImageUrl').value = '';
+        document.getElementById('nodeImageUrl').style.display = nodeType === 'image' ? 'block' : 'none';
+        document.getElementById('createNodeModal').style.display = 'block';
+        nodeTypeToCreate = nodeType;
+      }
+
+      function closeCreateNodeModal() {
+        document.getElementById('createNodeModal').style.display = 'none';
+      }
+
+      function confirmCreateNode() {
+        const nodeName = document.getElementById('nodeName').value.trim();
+        const nodeImageUrl = document.getElementById('nodeImageUrl').value.trim();
+
+        if (nodeName && !files[nodeName]) {
+          if (nodeTypeToCreate === 'text') {
+            files[nodeName] = {
               content: "",
               links: [],
               color: "#f5c84c",
-              isImage: false, 
+              isImage: false,
             };
-            loadFile(fileName); 
+            loadFile(nodeName);
             updateFileList();
             renderGraph();
             openEditorWindow();
-          } else {
-            alert("File name already exists or invalid.");
-          }
-        } else if (nodeType === "image") {
-          const fileName = prompt("Enter file name:");
-          const imageURL = prompt("Enter image URL:"); 
-          if (fileName && imageURL && !files[fileName]) {
-            files[fileName] = {
+          } else if (nodeTypeToCreate === 'image' && nodeImageUrl) {
+            files[nodeName] = {
               content: "",
               links: [],
               color: "#f5c84c",
               isImage: true,
-              imageURL: imageURL,
+              imageURL: nodeImageUrl,
             };
-            loadFile(fileName); 
+            loadFile(nodeName);
             updateFileList();
             renderGraph();
-            openImageEditorWindow(); 
+            openImageEditorWindow();
           } else {
-            alert("File name or image URL is invalid.");
+            alert("Invalid input. Please ensure all fields are filled correctly.");
           }
+        } else {
+          alert("Node name already exists or is invalid.");
         }
+        closeCreateNodeModal();
       }
+
       function updateFileList() {
         const fileList = document.getElementById("fileList");
         fileList.innerHTML = "";
@@ -407,6 +443,7 @@
           linkToFile.appendChild(option);
         }
       }
+
       function deleteFile(fileName) {
         if (confirm(`Are you sure you want to delete "${fileName}"?`)) {
           delete files[fileName];
@@ -421,6 +458,7 @@
           renderGraph();
         }
       }
+
       function loadFile(fileName) {
         saveCurrentFile();
         currentFile = fileName;
@@ -438,6 +476,7 @@
           openEditorWindow();
         }
       }
+
       function saveCurrentFile() {
         if (currentFile) {
           if (files[currentFile].isImage) {
@@ -449,6 +488,7 @@
           }
         }
       }
+
       function renameFile() {
         if (currentFile) {
           if (files[currentFile].isImage) {
@@ -474,6 +514,7 @@
           }
         }
       }
+
       function linkFile() {
         const targetFile = document.getElementById("linkToFile").value;
         if (
@@ -485,6 +526,7 @@
           renderGraph();
         }
       }
+
       function unlinkFile() {
         const targetFile = document.getElementById("linkToFile").value;
         if (currentFile && targetFile) {
@@ -494,6 +536,7 @@
           renderGraph();
         }
       }
+
       function updateNodeColor() {
         if (currentFile) {
           files[currentFile].color =
@@ -501,6 +544,7 @@
           renderGraph();
         }
       }
+
       function updateImageLink() {
         if (currentFile) {
           files[currentFile].imageURL =
@@ -508,89 +552,98 @@
           renderGraph();
         }
       }
-      function renderGraph() {
-        const nodes = Object.keys(files).map((fileName) => {
-          const nodeConfig = {
-            id: fileName,
-            label: fileName,
-            color: { background: files[fileName].color || "#f5c84c" }
-          };
 
-          if (files[fileName].isImage && files[fileName].imageURL) {
-            nodeConfig.shape = 'image';
-            nodeConfig.image = files[fileName].imageURL;
-            nodeConfig.size = 50;
-          } else {
-            // Text nodes are circles with labels below
-            nodeConfig.shape = 'circle'; 
-            nodeConfig.font = {
-              align: 'center', // Center label horizontally
-              vadjust: 40, // Move label below the circle
-              size: 14
-            };
-            nodeConfig.size = 30;
-          }
-
-          return nodeConfig;
-        });
-
-        const edges = [];
-        for (const [source, file] of Object.entries(files)) {
-          for (const target of file.links) {
-            edges.push({ from: source, to: target });
-          }
-        }
-
-        const container = document.getElementById("graphBackground");
-        const data = {
-          nodes: new vis.DataSet(nodes),
-          edges: new vis.DataSet(edges)
-        };
-        const options = {
-          nodes: {
-            font: { color: "#ffffff" },
-            borderWidth: 2
-          },
-          edges: {
-            width: 2,
-            color: "#777777"
-          },
-          physics: {
-            enabled: true
-          }
-        };
-
-        if (network) {
-          network.setData(data);
-        } else {
-          network = new vis.Network(container, data, options);
-        }
-
-        network.on("click", function (params) {
-          if (params.nodes.length > 0) {
-            const fileName = params.nodes[0];
-            loadFile(fileName);
-            if (files[fileName].isImage) {
-              openImageEditorWindow();
-            } else {
-              openEditorWindow();
-            }
-          }
-        });
+function renderGraph() {
+  const nodes = Object.keys(files).map((fileName) => {
+    const nodeConfig = {
+      id: fileName,
+      label: fileName,
+      color: { background: files[fileName].color || "#f5c84c" },
+      shape: 'circle',
+      size: 20,
+      font: {
+        color: '#ffffff',
+        size: 14,
+        align: 'center',
+        vadjust: 50, // Adjust this value to move the label below the node
+        multi: 'false'
+      },
+      widthConstraint: {
+        maximum: 50,
+        minimum: 50
       }
+    };
+
+    if (files[fileName].isImage && files[fileName].imageURL) {
+      nodeConfig.shape = 'image';
+      nodeConfig.image = files[fileName].imageURL;
+      nodeConfig.size = 50;
+    }
+
+    return nodeConfig;
+  });
+
+  const edges = [];
+  for (const [source, file] of Object.entries(files)) {
+    for (const target of file.links) {
+      edges.push({ from: source, to: target });
+    }
+  }
+
+  const container = document.getElementById("graphBackground");
+  const data = {
+    nodes: new vis.DataSet(nodes),
+    edges: new vis.DataSet(edges)
+  };
+  const options = {
+    nodes: {
+      font: { color: "#ffffff" },
+      borderWidth: 2
+    },
+    edges: {
+      width: 2,
+      color: "#777777"
+    },
+    physics: {
+      enabled: true
+    }
+  };
+
+  if (network) {
+    network.setData(data);
+  } else {
+    network = new vis.Network(container, data, options);
+  }
+
+  network.on("click", function (params) {
+    if (params.nodes.length > 0) {
+      const fileName = params.nodes[0];
+      loadFile(fileName);
+      if (files[fileName].isImage) {
+        openImageEditorWindow();
+      } else {
+        openEditorWindow();
+      }
+    }
+  });
+}
       function openEditorWindow() {
         document.getElementById("editorWindow").style.display = "flex";
       }
+
       function openImageEditorWindow() {
         document.getElementById("imageEditorWindow").style.display = "flex";
       }
+
       function closeWindow(windowId) {
         document.getElementById(windowId).style.display = "none";
       }
+
       function minimizeWindow(windowId) {
         const windowElement = document.getElementById(windowId);
         windowElement.classList.toggle("minimized");
       }
+
       let exportWindow;
       function exportFiles() {
         saveCurrentFile();
@@ -638,6 +691,7 @@
         }
         exportWindow.style.display = "flex";
       }
+
       function startDrag(event, elementId) {
         const element = document.getElementById(elementId);
         dragOffset.x = event.clientX - element.getBoundingClientRect().left;
@@ -655,6 +709,7 @@
           { once: true },
         );
       }
+
       function startResize(event, elementId) {
         const element = document.getElementById(elementId);
         const startWidth = element.clientWidth;
@@ -674,9 +729,7 @@
           { once: true },
         );
       }
-      function closeWindow(windowId) {
-        document.getElementById(windowId).style.display = "none";
-      }
+
       function importFiles(event) {
         const file = event.target.files[0];
         if (file) {
@@ -689,48 +742,11 @@
           reader.readAsText(file);
         }
       }
-      function startDrag(event, elementId) {
-        const element = document.getElementById(elementId);
-        dragOffset.x = event.clientX - element.getBoundingClientRect().left;
-        dragOffset.y = event.clientY - element.getBoundingClientRect().top;
-        function drag(e) {
-          element.style.left = `${e.clientX - dragOffset.x}px`;
-          element.style.top = `${e.clientY - dragOffset.y}px`;
-        }
-        document.addEventListener("mousemove", drag);
-        document.addEventListener(
-          "mouseup",
-          () => {
-            document.removeEventListener("mousemove", drag);
-          },
-          { once: true },
-        );
-      }
-      function startResize(event, elementId) {
-        const element = document.getElementById(elementId);
-        const startWidth = element.clientWidth;
-        const startHeight = element.clientHeight;
-        const startX = event.clientX;
-        const startY = event.clientY;
-        function resize(e) {
-          element.style.width = `${startWidth + e.clientX - startX}px`;
-          element.style.height = `${startHeight + e.clientY - startY}px`;
-        }
-        document.addEventListener("mousemove", resize);
-        document.addEventListener(
-          "mouseup",
-          () => {
-            document.removeEventListener("mousemove", resize);
-          },
-          { once: true },
-        );
-      }
+
       function openWindow(windowId) {
         document.getElementById(windowId).style.display = "flex";
       }
-      function closeWindow(windowId) {
-        document.getElementById(windowId).style.display = "none";
-      }
+
       function importFromText() {
         const jsonText = document.getElementById("jsonText").value;
         try {
@@ -742,6 +758,7 @@
           alert("Invalid JSON format");
         }
       }
+
       function searchFiles() {
         const searchTerm = document
           .getElementById("fileSearch")
@@ -757,49 +774,11 @@
           }
         });
       }
+
       function isValidImageUrl(url) {
         return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
-      }
-      function createFile(nodeType) {
-        saveCurrentFile();
-        if (nodeType === "text") {
-          const fileName = prompt("Enter file name:");
-          if (fileName && !files[fileName]) {
-            files[fileName] = {
-              content: "",
-              links: [],
-              color: "#f5c84c",
-              isImage: false,
-            };
-            loadFile(fileName);
-            updateFileList();
-            renderGraph();
-            openEditorWindow();
-          } else {
-            alert("File name already exists or invalid.");
-          }
-        } else if (nodeType === "image") {
-          const fileName = prompt("Enter file name:");
-          const imageURL = prompt("Enter image URL:");
-          if (fileName && imageURL && !files[fileName]) {
-            files[fileName] = {
-              content: "",
-              links: [],
-              color: "#f5c84c",
-              isImage: true,
-              imageURL: imageURL,
-            };
-            loadFile(fileName);
-            updateFileList();
-            renderGraph();
-            openImageEditorWindow();
-          } else {
-            alert("File name or image URL is invalid.");
-          }
-        }
       }
     </script>
   </body>
 </html>
-
 
